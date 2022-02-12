@@ -1,5 +1,5 @@
 BIN=goatmo
-TAG := $(shell git describe --tags)
+TAG := $(shell git describe --tags --abbrev=0)
 DIST_FOLDER=dist
 BUILD_FOLDER=build
 
@@ -16,9 +16,9 @@ build-linux-amd64: prepare_build
 	GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags=-static -s -w" -o $(BUILD_FOLDER)/$(BIN)-$(TAG)-linux-amd64
 
 package: prepare_dist
-	for bin in $(shell cd $(BUILD_FOLDER) && ls $(BIN)-$(TAG)-*); do\
+	@for bin in $(shell cd $(BUILD_FOLDER) && ls $(BIN)-$(TAG)-*); do\
 		echo $$bin;\
-		tar czf $(DIST_FOLDER)/$$bin.tar.gz $(BUILD_FOLDER)/$$bin;\
+		cd $(BUILD_FOLDER) && tar czf ../$(DIST_FOLDER)/$$bin.tar.gz $$bin && cd ..;\
 	done
 
 clean:
