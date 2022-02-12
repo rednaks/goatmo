@@ -32,7 +32,7 @@ func getSensorValues() (hum, temp float32) {
   return
 }
 
-func recordMetrics() {
+func recordMetrics(humidity prometheus.Gauge, temperature prometheus.Gauge) {
   go func() {
     for {
       hum, temp := getSensorValues()
@@ -47,17 +47,22 @@ var addr = flag.String("listen-address", "0.0.0.0:9000", "The address to listen 
 var prefix = flag.String("metric-prefix", "goatmo", "The prefix wanted for the metric")
 var dht_pin = flag.Int("dht-pin", 4, "Pin where DHT is plugged in")
 
-var (
-  humidity = promauto.NewGauge(prometheus.GaugeOpts{
-    Name: *prefix + "_room_humidity",
-    Help: "Room Humidity",
-  })
 
-  temperature = promauto.NewGauge(prometheus.GaugeOpts{
-    Name: *prefix + "_room_temperature",
-    Help: "Room Temperature",
-  })
-)
+func initMetrics() (h prometheus.Gauge, t prometheus.Gauge) {
+  var (
+    humidity = promauto.NewGauge(prometheus.GaugeOpts{
+      Name: *prefix + "_room_humidity",
+      Help: "Room Humidity",
+    })
+
+    temperature = promauto.NewGauge(prometheus.GaugeOpts{
+      Name: *prefix + "_room_temperature",
+      Help: "Room Temperature",
+    })
+  )
+
+  return humidity, temperature
+}
 
 func initHandleInterrupt() {
   c := make(chan os.Signal)
@@ -72,9 +77,8 @@ func initHandleInterrupt() {
 func main() {
 
   flag.Parse()
-
   initHandleInterrupt()
-  recordMetrics()
+  recordMetrics(initMetrics())
 
   http.Handle("/metrics", promhttp.Handler())
   http.ListenAndServe(*addr, nil)
