@@ -1,13 +1,28 @@
 BIN=goatmo
 TAG := $(shell git describe --tags)
-build-linux-arm64:
-	CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -ldflags="-extldflags=-static -s -w" -o $(BIN)-$(TAG)-linux-arm64
+DIST_FOLDER=dist
+BUILD_FOLDER=build
 
-build-linux-amd64:
-	GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags=-static -s -w" -o $(BIN)-$(TAG)-linux-amd64
+prepare_build:
+	mkdir -p build
+
+prepare_dist:
+	mkdir -p dist
+
+build-linux-arm64: prepare_build
+	CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -ldflags="-extldflags=-static -s -w" -o $(BUILD_FOLDER)/$(BIN)-$(TAG)-linux-arm64
+
+build-linux-amd64: prepare_build
+	GOOS=linux GOARCH=amd64 go build -ldflags="-extldflags=-static -s -w" -o $(BUILD_FOLDER)/$(BIN)-$(TAG)-linux-amd64
+
+package: prepare_dist
+	for bin in $(shell cd $(BUILD_FOLDER) && ls $(BIN)-$(TAG)-*); do\
+		echo $$bin;\
+		tar czf $(DIST_FOLDER)/$$bin.tar.gz $(BUILD_FOLDER)/$$bin;\
+	done
 
 clean:
-	rm $(BIN)-v*
+	rm -r $(BUILD_FOLDER) $(DIST_FOLDER)
 
-all: build-linux-amd64 build-linux-arm64
+all: build-linux-amd64 build-linux-arm64 package
 
