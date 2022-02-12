@@ -3,6 +3,9 @@ package main
 import (
   "flag"
   "net/http"
+  "os"
+  "os/signal"
+  "syscall"
   "time"
 
   "github.com/prometheus/client_golang/prometheus"
@@ -13,18 +16,19 @@ import (
 )
 
 var lg = logger.NewPackageLogger("main",
-	logger.InfoLevel,
+logger.InfoLevel,
 )
 
 func getSensorValues() (hum, temp float32) {
   sensorType := dht.DHT22
   temp, hum, retried, err := dht.ReadDHTxxWithRetry(sensorType, *dht_pin, false, 10)
   if err != nil {
-    lg.Fatal(err)
+    lg.Info(err)
+    return 0.0, 0.0
   }
 
   lg.Infof("Sensor = %v: Temperature = %v*C, Humidity = %v%%, (retried %d times)",
-    sensorType, temp, hum, retried)
+  sensorType, temp, hum, retried)
   return
 }
 
@@ -55,11 +59,21 @@ var (
   })
 )
 
+func initHandleInterrupt() {
+  c := make(chan os.Signal)
+  signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+  go func() {
+    <-c
+    lg.Infof("Exitinng ...")
+    os.Exit(1)
+  }()
+}
 
 func main() {
 
   flag.Parse()
 
+  initHandleInterrupt()
   recordMetrics()
 
   http.Handle("/metrics", promhttp.Handler())
