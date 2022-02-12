@@ -32,12 +32,12 @@ func getSensorValues() (hum, temp float32) {
   return
 }
 
-func recordMetrics(humidity *prometheus.Gauge, temperature *prometheus.Gauge) {
+func recordMetrics(humidity prometheus.Gauge, temperature prometheus.Gauge) {
   go func() {
     for {
       hum, temp := getSensorValues()
-      (*humidity).Set(float64(hum))
-      (*temperature).Set(float64(temp))
+      humidity.Set(float64(hum))
+      temperature.Set(float64(temp))
       time.Sleep(10 * time.Second)
     }
   }()
@@ -48,7 +48,7 @@ var prefix = flag.String("metric-prefix", "goatmo", "The prefix wanted for the m
 var dht_pin = flag.Int("dht-pin", 4, "Pin where DHT is plugged in")
 
 
-func initMetrics() (h *prometheus.Gauge, t *prometheus.Gauge) {
+func initMetrics() (h prometheus.Gauge, t prometheus.Gauge) {
   var (
     humidity = promauto.NewGauge(prometheus.GaugeOpts{
       Name: *prefix + "_room_humidity",
@@ -61,7 +61,7 @@ func initMetrics() (h *prometheus.Gauge, t *prometheus.Gauge) {
     })
   )
 
-  return &humidity, &temperature
+  return humidity, temperature
 }
 
 func initHandleInterrupt() {
